@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useAuth } from "@/contexts/AuthContext"
 import { supabase } from "@/lib/supabase"
 import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
@@ -22,6 +23,14 @@ export default function Login() {
   
   const { toast } = useToast()
   const navigate = useNavigate()
+  const { user } = useAuth()
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      navigate("/")
+    }
+  }, [user, navigate])
 
   const handleAuth = async (e) => {
     e.preventDefault()
