@@ -1,4 +1,4 @@
 # LinkedIn-Post-Generator
 LinkedIn Post Generator
 
-Website: https://linkedin-post-generator-coral.vercel.app
+Website: https://sharma03ritesh.github.io/LinkedIn-Post-Generator/
