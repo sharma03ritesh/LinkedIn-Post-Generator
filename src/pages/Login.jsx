@@ -38,19 +38,23 @@ export default function Login() {
 
     try {
       // Dynamically fetch the configured site URL for redirects
-      // Fallback to current origin if not configured
       const { data: siteSetting } = await supabase
         .from('settings')
         .select('value')
         .eq('id', 'site_url')
         .single()
       
-      const siteUrl = siteSetting?.value || window.location.origin
+      // We combine the origin with the Vite BASE_URL (e.g. /LinkedIn-Post-Generator/) 
+      // if the siteSetting isn't explicitly set to a different full URL.
+      const baseUrl = import.meta.env.BASE_URL || '/'
+      const siteUrl = siteSetting && siteSetting.value !== 'http://localhost:5173' 
+        ? siteSetting.value 
+        : window.location.origin + baseUrl
 
       if (isResetPassword) {
         // Send actual password reset email
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${siteUrl}/update-password`
+          redirectTo: `${siteUrl}update-password`.replace(/\/\//g, '/') // Ensure clean slashes
         })
         if (error) throw error
         toast({ title: "Reset link sent!", description: "Check your email for the password reset link." })
@@ -67,6 +71,7 @@ export default function Login() {
         if (error) throw error
         toast({ title: "Magic Link Sent!", description: "Check your email for the seamless login link." })
       }
+
       else if (isSignUp) {
         if (!fullName.trim()) throw new Error("Full name is required")
         if (password !== confirmPassword) throw new Error("Passwords do not match!")
