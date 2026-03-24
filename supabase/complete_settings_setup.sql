@@ -61,6 +61,7 @@ values
   ('smtp_user', 'resend', 'Email', false, 'SMTP Server username'),
   ('smtp_password', 'your_smtp_password_here', 'Email', false, 'SMTP Server password'),
   ('smtp_sender_name', 'LinkedIn Post Generator', 'Email', false, 'Name displayed as sender in emails'),
+  ('site_url', 'http://localhost:5173', 'general', true, 'The public URL of your application (used for Magic Links and Resets)'),
   ('supabase_url', 'https://your-project.supabase.co', 'Supabase', true, 'Your Supabase Project URL (Public)'),
   ('supabase_anon_key', 'your-anon-key', 'Supabase', true, 'Your Supabase Anon/Public Key')
 on conflict (id) do update set 

@@ -37,10 +37,20 @@ export default function Login() {
     setLoading(true)
 
     try {
+      // Dynamically fetch the configured site URL for redirects
+      // Fallback to current origin if not configured
+      const { data: siteSetting } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('id', 'site_url')
+        .single()
+      
+      const siteUrl = siteSetting?.value || window.location.origin
+
       if (isResetPassword) {
         // Send actual password reset email
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin + '/update-password'
+          redirectTo: `${siteUrl}/update-password`
         })
         if (error) throw error
         toast({ title: "Reset link sent!", description: "Check your email for the password reset link." })
@@ -51,7 +61,7 @@ export default function Login() {
         const { error } = await supabase.auth.signInWithOtp({
           email,
           options: {
-            emailRedirectTo: window.location.origin
+            emailRedirectTo: siteUrl
           }
         })
         if (error) throw error
@@ -66,7 +76,7 @@ export default function Login() {
           password,
           options: {
             data: { full_name: fullName.trim() },
-            emailRedirectTo: window.location.origin
+            emailRedirectTo: siteUrl
           }
         })
         if (error) throw error
@@ -95,6 +105,7 @@ export default function Login() {
       setLoading(false)
     }
   }
+
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex w-full">
