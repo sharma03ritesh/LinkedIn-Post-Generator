@@ -63,6 +63,9 @@ export default function Home() {
             });
             setGeneratedPost(data);
 
+            // We no longer manually increment usage here, 
+            // as the Edge Function does it securely on the server.
+            
             if (user) {
                 const { error: dbError } = await supabase.from('generated_posts').insert({
                     user_id: user.id,

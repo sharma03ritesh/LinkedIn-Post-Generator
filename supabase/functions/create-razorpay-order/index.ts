@@ -12,14 +12,25 @@ serve(async (req) => {
   }
 
   try {
-    const { amount, currency = "INR", receipt = "receipt_id" } = await req.json()
-
-    // Connect to Supabase
+    // 1. Initialize Supabase Client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    // Fetch credentials from the settings table
+    // 2. Enforce Authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) throw new Error("No authorization header provided.");
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+
+    if (authError || !user) {
+      throw new Error("Authentication required to create orders.");
+    }
+
+    const { amount, currency = "INR", receipt = "receipt_id" } = await req.json()
+
+    // 3. Fetch credentials from the settings table
     const { data: key_id } = await supabaseClient.rpc('get_setting', { setting_id: 'razorpay_key_id' });
     const { data: key_secret } = await supabaseClient.rpc('get_setting', { setting_id: 'razorpay_key_secret' });
 
@@ -59,4 +70,3 @@ serve(async (req) => {
     })
   }
 })
-

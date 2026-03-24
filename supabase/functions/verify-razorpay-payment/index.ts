@@ -12,53 +12,60 @@ serve(async (req) => {
   }
 
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = await req.json()
-
-    // Connect to Supabase to fetch setting
+    // 1. Initialize Supabase Client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    // Fetch the Razorpay Secret Key using the database function
-    const { data: key_secret, error: settingError } = await supabaseClient.rpc('get_setting', {
-      setting_id: 'razorpay_key_secret'
-    });
+    // 2. Enforce Authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) throw new Error("No authorization header provided.");
 
-    if (settingError || !key_secret) {
-        console.error("Database fetch error:", settingError);
-        throw new Error("Razorpay Secret is missing in the system settings")
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+
+    if (authError || !user) {
+      throw new Error("Authentication required to verify payments.");
     }
 
-    // Create HMAC SHA256 Signature
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = await req.json()
+
+    // 3. Fetch Secret from Database
+    const { data: key_secret } = await supabaseClient.rpc('get_setting', { setting_id: 'razorpay_key_secret' });
+
+    if (!key_secret) {
+      throw new Error("Razorpay secret not configured in database.");
+    }
+
     const encoder = new TextEncoder()
-    const key = await crypto.subtle.importKey(
+    const data = encoder.encode(razorpay_order_id + "|" + razorpay_payment_id)
+    const secret = encoder.encode(key_secret)
+
+    const cryptoKey = await crypto.subtle.importKey(
       "raw",
-      encoder.encode(key_secret),
+      secret,
       { name: "HMAC", hash: "SHA-256" },
       false,
       ["sign"]
     )
 
-    const data = encoder.encode(razorpay_order_id + "|" + razorpay_payment_id)
-    const signatureBuffer = await crypto.subtle.sign("HMAC", key, data)
-    
-    // Convert ArrayBuffer to Hex String manually
-    const signatureArray = Array.from(new Uint8Array(signatureBuffer))
-    const generated_signature = signatureArray.map(b => b.toString(16).padStart(2, '0')).join('')
+    const signature = await crypto.subtle.sign("HMAC", cryptoKey, data)
+    const generated_signature = Array.from(new Uint8Array(signature))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("")
 
     if (generated_signature !== razorpay_signature) {
-      throw new Error("Invalid payment signature. Payment verification failed.")
+      throw new Error("Invalid payment signature")
     }
 
-    return new Response(JSON.stringify({ verified: true }), {
+    return new Response(JSON.stringify({ status: "success" }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
   } catch (error) {
-    return new Response(JSON.stringify({ verified: false, error: error.message }), {
+    return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
     })
   }
 })
-
