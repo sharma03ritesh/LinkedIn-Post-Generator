@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,12 +14,17 @@ serve(async (req) => {
   try {
     const { amount, currency = "INR", receipt = "receipt_id" } = await req.json()
 
-    // Retrieve the secret directly from the function's environment variables
-    const key_id = Deno.env.get("RAZORPAY_KEY_ID") || ""
-    const key_secret = Deno.env.get("RAZORPAY_KEY_SECRET") || ""
+    // Connect to Supabase
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+
+    // Fetch credentials from the settings table
+    const { data: key_id } = await supabaseClient.rpc('get_setting', { setting_id: 'razorpay_key_id' });
+    const { data: key_secret } = await supabaseClient.rpc('get_setting', { setting_id: 'razorpay_key_secret' });
 
     if (!key_id || !key_secret) {
-      throw new Error("Razorpay credentials are not configured on the server.")
+      throw new Error("Razorpay credentials are not configured in the system settings.")
     }
 
     const basicAuth = btoa(`${key_id}:${key_secret}`)
@@ -53,3 +59,4 @@ serve(async (req) => {
     })
   }
 })
+

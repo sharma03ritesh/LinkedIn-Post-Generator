@@ -21,6 +21,7 @@ export default function Pricing() {
   const [paymentMethod, setPaymentMethod] = useState(null) // 'card' or 'upi'
   const [processingUPI, setProcessingUPI] = useState(false)
   const [transactionId, setTransactionId] = useState("")
+  const [razorpayKeyId, setRazorpayKeyId] = useState(null)
 
   const { user, profile } = useAuth()
   const { toast } = useToast()
@@ -28,7 +29,22 @@ export default function Pricing() {
 
   useEffect(() => {
     fetchPlans()
+    fetchRazorpayKey()
   }, [])
+
+  const fetchRazorpayKey = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('id', 'razorpay_key_id')
+        .single()
+      
+      if (data) setRazorpayKeyId(data.value)
+    } catch (err) {
+      console.error("Error fetching payment config:", err)
+    }
+  }
 
   const fetchPlans = async () => {
     try {
@@ -111,7 +127,7 @@ export default function Pricing() {
     }
 
     const options = {
-      key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_YourTestKeyHere",
+      key: razorpayKeyId || import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_YourTestKeyHere",
       amount: orderData.amount, // fetched securely from order
       currency: orderData.currency,
       name: "LinkedIn Post Generator",
