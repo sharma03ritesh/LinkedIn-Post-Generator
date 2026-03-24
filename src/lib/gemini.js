@@ -2,7 +2,7 @@ import { supabase } from "./supabase";
 
 export async function generatePost({ topic, postType, tone, length }) {
     const payload = { topic, postType, tone, length };
-    
+    console.log("here-----------",payload)
     try {
         // Method 1: Standard Supabase Client Invoke (Preferred)
         if (supabase.functions && typeof supabase.functions.invoke === 'function') {
@@ -17,8 +17,8 @@ export async function generatePost({ topic, postType, tone, length }) {
                 throw error;
             }
             return data;
-        } 
-        
+        }
+
         // Method 2: Manual Fetch Fallback (if client property is missing)
         console.warn("supabase.functions.invoke is missing, using manual fetch fallback");
         const { data: { publicUrl } } = supabase.storage.from('dummy').getPublicUrl(''); // Just to get the base URL if needed, or use .supabaseUrl

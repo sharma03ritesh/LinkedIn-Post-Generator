@@ -72,39 +72,25 @@ export const AuthProvider = ({ children }) => {
 
   // Subscription checking logic
   const checkCanGenerate = async () => {
-    if (user) {
-      // For authenticated users, call our RPC function in supabase
-      const { data, error } = await supabase.rpc('increment_usage')
-      if (error) {
-        throw new Error(error.message)
-      }
-      if (!data.success) {
-        throw new Error(data.error) // 'Daily limit reached'
-      }
-      
-      // Update local profile usage_count to reflect the newly returned count
-      setProfile(prev => ({
-        ...prev,
-        usage_count: data.usage_count
-      }))
-      return true;
-    } else {
-      // For guests - Call the new strict IP + Device Fingerprint Tracker
-      const fingerprint = getDeviceFingerprint()
-      const { data, error } = await supabase.rpc('check_and_mark_guest_usage', {
-        device_fingerprint: fingerprint
-      })
-      
-      if (error) {
-        throw new Error(error.message)
-      }
-      
-      if (!data?.success) {
-        throw new Error(data?.error || 'Guest usage limit reached')
-      }
-      
-      return true;
+    if (!user) {
+      throw new Error("Authentication required. Please login to generate posts.");
     }
+
+    // For authenticated users, call our RPC function in supabase
+    const { data, error } = await supabase.rpc('increment_usage')
+    if (error) {
+      throw new Error(error.message)
+    }
+    if (!data.success) {
+      throw new Error(data.error) // 'Daily limit reached'
+    }
+    
+    // Update local profile usage_count to reflect the newly returned count
+    setProfile(prev => ({
+      ...prev,
+      usage_count: data.usage_count
+    }))
+    return true;
   }
 
   return (
