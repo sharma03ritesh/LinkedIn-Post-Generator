@@ -53,8 +53,12 @@ export default function Login() {
 
       if (isResetPassword) {
         // Send actual password reset email
+        // We ensure siteUrl ends with / and update-password doesn't start with /
+        const formattedUrl = siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`
+        const resetRedirect = `${formattedUrl}update-password`
+        
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${siteUrl}update-password`.replace(/\/\//g, '/') // Ensure clean slashes
+          redirectTo: resetRedirect
         })
         if (error) throw error
         toast({ title: "Reset link sent!", description: "Check your email for the password reset link." })
